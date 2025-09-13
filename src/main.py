@@ -25,20 +25,24 @@ def get_expenses(db: Session = Depends(database.get_db)):
 @app.get("/expenses/{expense_id}", response_model=schemas.ExpenseOut)
 async def get_expense(expense_id: int, db: Session = Depends(database.get_db)):
     db_expense = crud.get_expense(db=db, expense_id=expense_id)
-    
+
     if not db_expense:
         raise HTTPException(status_code=404, detail="Object not found")
-    
+
     return db_expense
 
 
 @app.put("/expenses/{expense_id}", response_model=schemas.ExpenseOut)
-async def update_expense(expense_id: int, expense: schemas.ExpenseUpdate, db: Session = Depends(database.get_db)):
+async def update_expense(
+    expense_id: int,
+    expense: schemas.ExpenseUpdate,
+    db: Session = Depends(database.get_db),
+):
     db_expense = crud.get_expense(db=db, expense_id=expense_id)
-    
+
     if not db_expense:
         raise HTTPException(status_code=404, detail="Object not found")
-    
+
     updated_expense = crud.update_expense(db=db, expense_id=expense_id, expense=expense)
     return updated_expense
 

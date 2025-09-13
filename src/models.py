@@ -1,12 +1,12 @@
-from sqlalchemy import Column, Integer, String, Numeric, DateTime
+from sqlalchemy import Column, DateTime, Integer, Numeric, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 
 Base = declarative_base()
 
+
 class Expense(Base):
     __tablename__ = "expenses"
-
 
     id = Column(Integer, primary_key=True)
     description = Column(String)

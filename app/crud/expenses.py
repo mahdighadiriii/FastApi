@@ -13,7 +13,7 @@ def create_expense(db: Session, expense: ExpenseCreate):
 
 
 def get_expenses(db: Session):
-    return db.query(Expense)
+    return db.query(Expense).all()
 
 
 def get_expense(db: Session, expense_id: int):

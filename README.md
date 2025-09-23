@@ -1,9 +1,9 @@
 # Expenses API
 
-A simple FastAPI-based application for managing expenses with JWT authentication.
+A simple FastAPI-based application for managing expenses with JWT authentication and multi-language support.
 
 ## Overview
-This project implements a RESTful API for managing expenses, integrated with a secure JWT-based authentication system. It uses SQLite as the database and supports user registration, login, token refresh, and expense management. The API is documented using Swagger UI, and security is enhanced with HttpOnly cookies and strict SameSite policies.
+This project implements a RESTful API for managing expenses, integrated with a secure JWT-based authentication system and internationalization (i18n) for supporting multiple languages (English and Persian). It uses SQLite as the database and supports user registration, login, token refresh, and expense management. The API is documented using Swagger UI, and security is enhanced with HttpOnly cookies and strict SameSite policies.
 
 ## Features
 - **Authentication**:
@@ -14,6 +14,10 @@ This project implements a RESTful API for managing expenses, integrated with a s
 - **Expense Management**:
   - Create, list, retrieve, update, and delete expenses.
   - All endpoints require authentication via JWT.
+- **Multi-Language Support (i18n)**:
+  - Supports English (`en`) and Persian (`fa`) with translations managed via PO/MO files.
+  - Language detection via `Accept-Language` header or `lang` query parameter.
+  - Error messages and responses are translated based on the user's language.
 - **Security**:
   - Passwords hashed with bcrypt.
   - JWT tokens signed with a secure secret key.
@@ -25,7 +29,7 @@ This project implements a RESTful API for managing expenses, integrated with a s
 ## Setup
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/mahdighadiriii/FastApi
+   git https://github.com/mahdighadiriii/FastApi/tree/feature/translations
    cd FastApi
    ```
 
@@ -46,12 +50,18 @@ This project implements a RESTful API for managing expenses, integrated with a s
    alembic upgrade head
    ```
 
-5. **Start the Server**:
+5. **Compile Translation Files**:
+   ```bash
+   msgfmt app/translations/en/LC_MESSAGES/messages.po -o app/translations/en/LC_MESSAGES/messages.mo
+   msgfmt app/translations/fa/LC_MESSAGES/messages.po -o app/translations/fa/LC_MESSAGES/messages.mo
+   ```
+
+6. **Start the Server**:
    ```bash
    fastapi dev app/main.py
    ```
 
-6. **Access Swagger UI**:
+7. **Access Swagger UI**:
    Open `http://localhost:8000/docs` in your browser.
 
 ## Endpoints
@@ -67,6 +77,52 @@ This project implements a RESTful API for managing expenses, integrated with a s
 - **GET /expenses/{expense_id}**: Get details of a specific expense by ID.
 - **PUT /expenses/{expense_id}**: Update an existing expense.
 - **DELETE /expenses/{expense_id}**: Delete an expense.
+
+## Multi-Language Support
+The API supports multiple languages (English and Persian) using `gettext` with PO/MO files. The language is determined by:
+1. Query parameter `lang` (e.g., `?lang=fa`).
+2. `Accept-Language` header (e.g., `Accept-Language: fa`).
+3. Default language: English (`en`).
+
+### Adding a New Language
+To add a new language (e.g., Arabic `ar`):
+1. Create a new directory: `app/translations/ar/LC_MESSAGES`.
+2. Create a `messages.po` file in the directory with translations:
+   ```po
+   msgid ""
+   msgstr ""
+   "Project-Id-Version: Expenses API\n"
+   "POT-Creation-Date: 2025-09-23 18:14+0400\n"
+   "PO-Revision-Date: 2025-09-23 18:14+0400\n"
+   "Language: ar\n"
+   "MIME-Version: 1.0\n"
+   "Content-Type: text/plain; charset=UTF-8\n"
+   "Content-Transfer-Encoding: 8bit\n"
+
+   msgid "username_already_registered"
+   msgstr "اسم المستخدم مسجل بالفعل"
+
+   msgid "incorrect_username_or_password"
+   msgstr "اسم المستخدم أو كلمة المرور غير صحيحة"
+
+   msgid "invalid_or_expired_refresh_token"
+   msgstr "رمز التحديث غير صالح أو منتهي الصلاحية"
+
+   msgid "expense_not_found"
+   msgstr "لم يتم العثور على المصروف"
+
+   msgid "logged_out_successfully"
+   msgstr "تم تسجيل الخروج بنجاح"
+   ```
+3. Compile the PO file to MO:
+   ```bash
+   msgfmt app/translations/ar/LC_MESSAGES/messages.po -o app/translations/ar/LC_MESSAGES/messages.mo
+   ```
+4. Update `SUPPORTED_LANGUAGES` in `app/i18n.py`:
+   ```python
+   SUPPORTED_LANGUAGES = ["en", "fa", "ar"]
+   ```
+5. Restart the server and test with `?lang=ar` or `Accept-Language: ar`.
 
 ## Why Cookies Instead of Authorization Header?
 Using cookies for storing JWT tokens offers several advantages over the traditional Authorization header approach:
@@ -102,25 +158,31 @@ Run the following commands to test the API:
 
 2. **Login**:
    ```bash
-   curl -X POST "http://localhost:8000/auth/login" \
+   curl -X POST "http://localhost:8000/auth/login?lang=fa" \
    -H "Content-Type: application/json" \
-   -d '{"username":"testuser","password":"testpass"}' \
-   -c cookies.txt
+   -d '{"username":"testuser","password":"wrongpass"}'
    ```
+   Expected error (in Persian): `{"detail":"نام کاربری یا رمز عبور نادرست است"}`
 
 3. **Refresh Tokens**:
    ```bash
-   curl -X POST "http://localhost:8000/auth/refresh" \
+   curl -X POST "http://localhost:8000/auth/refresh?lang=fa" \
    -b cookies.txt -c cookies.txt
    ```
 
 4. **Get Expenses**:
    ```bash
-   curl -X GET "http://localhost:8000/expenses" -b cookies.txt
+   curl -X GET "http://localhost:8000/expenses?lang=fa" -b cookies.txt
    ```
 
-5. **Check Swagger UI**:
-   Visit `http://localhost:8000/docs` to interact with the API.
+5. **Test with Accept-Language Header**:
+   ```bash
+   curl -X GET "http://localhost:8000/expenses" \
+   -H "Accept-Language: fa" -b cookies.txt
+   ```
+
+6. **Check Swagger UI**:
+   Visit `http://localhost:8000/docs` to interact with the API. Test language switching with `lang` query or `Accept-Language` header.
 
 ## Project Structure
 ```
@@ -131,6 +193,15 @@ FastApi/
 │   │   ├── 0ed6480f3fe7_add_user_model_with_jwt.py
 │   │   └── ...
 ├── app/
+│   ├── translations/
+│   │   ├── en/
+│   │   │   └── LC_MESSAGES/
+│   │   │       ├── messages.po
+│   │   │       └── messages.mo
+│   │   ├── fa/
+│   │   │   └── LC_MESSAGES/
+│   │   │       ├── messages.po
+│   │   │       └── messages.mo
 │   ├── __init__.py
 │   ├── crud/
 │   │   ├── expenses.py
@@ -140,6 +211,7 @@ FastApi/
 │   │   └── expenses.py
 │   ├── database.py
 │   ├── dependencies.py
+│   ├── i18n.py
 │   ├── main.py
 │   ├── models.py
 │   └── schemas.py
@@ -148,6 +220,12 @@ FastApi/
 ├── README.md
 └── submission.txt
 ```
+
+## Implementation Challenges
+- **Language Detection**: Parsing the `Accept-Language` header required handling multiple formats (e.g., `fa-IR`, `en-US`) and prioritizing query parameters over headers. We simplified by extracting the primary language code (e.g., `fa` from `fa-IR`).
+- **Unicode Support**: Ensuring proper UTF-8 encoding for Persian text in JSON responses and PO files was critical to avoid encoding issues.
+- **Dependency Injection**: Adding the translator dependency to all endpoints without breaking existing functionality required careful integration with FastAPI's dependency system.
+- **PO/MO Files**: Generating and compiling translation files manually can be error-prone. Automation tools like `xgettext` could streamline this in larger projects.
 
 ## Notes
 - The project uses `datetime.now(timezone.utc)` for timezone-aware datetime handling, ensuring compatibility with Python 3.12+.

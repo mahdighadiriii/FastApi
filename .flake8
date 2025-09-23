@@ -1,0 +1,23 @@
+# .flake8
+[flake8]
+max-line-length = 78
+extend-ignore = 
+    E203,
+    W503
+exclude = 
+    .git,
+    __pycache__,
+    venv,
+    .venv,
+    .mypy_cache,
+    .ruff_cache
+
+# Enable useful plugins (if installed)
+# flake8-bugbear, flake8-comprehensions, flake8-bandit, etc.
+select = B,C,E,F,W,T4,B9
+
+# Show source for each error
+show-source = true
+
+# Count total errors at the end
+count = true

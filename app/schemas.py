@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -22,8 +21,8 @@ class ExpenseOut(ExpenseBase):
 
 
 class ExpenseUpdate(BaseModel):
-    description: Optional[str] = None
-    amount: Optional[float] = None
+    description: str | None = None
+    amount: float | None = None
 
 
 class UserBase(BaseModel):

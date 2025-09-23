@@ -1,0 +1,24 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Expenses API\n"
+"POT-Creation-Date: 2025-09-23 18:14+0400\n"
+"PO-Revision-Date: 2025-09-23 18:14+0400\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "username_already_registered"
+msgstr "Username already registered"
+
+msgid "incorrect_username_or_password"
+msgstr "Incorrect username or password"
+
+msgid "invalid_or_expired_refresh_token"
+msgstr "Invalid or expired refresh token"
+
+msgid "expense_not_found"
+msgstr "Expense not found"
+
+msgid "logged_out_successfully"
+msgstr "Logged out successfully"

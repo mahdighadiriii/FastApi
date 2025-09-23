@@ -1,7 +1,14 @@
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
-from sqlalchemy.orm import Session
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import (
+    APIRouter,
+    Cookie,
+    Depends,
+    HTTPException,
+    Response,
+    status,
+)
 from jose import jwt
+from sqlalchemy.orm import Session
+
 from .. import crud, database, dependencies, schemas
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -18,9 +25,13 @@ def register(
     db: Session = Depends(database.get_db),
     _=Depends(dependencies.get_i18n_translator),
 ):
-    existing_user = crud.users.get_user_by_username(db, username=user.username)
+    existing_user = crud.users.get_user_by_username(
+        db, username=user.username
+    )
     if existing_user:
-        raise HTTPException(status_code=400, detail=_("username_already_registered"))
+        raise HTTPException(
+            status_code=400, detail=_("username_already_registered")
+        )
     return crud.users.create_user(db, user)
 
 
@@ -28,7 +39,8 @@ def register(
     "/login",
     response_model=schemas.Token,
     summary="Login and get tokens",
-    description="Login with username and password to receive access and refresh tokens in cookies.",
+    description="Login with username and password to"
+    "receive access and refresh tokens in cookies.",
 )
 def login(
     response: Response,
@@ -45,8 +57,12 @@ def login(
             detail=_("incorrect_username_or_password"),
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = dependencies.create_access_token(data={"sub": str(user.id)})
-    refresh_token = dependencies.create_refresh_token(data={"sub": str(user.id)})
+    access_token = dependencies.create_access_token(
+        data={"sub": str(user.id)}
+    )
+    refresh_token = dependencies.create_refresh_token(
+        data={"sub": str(user.id)}
+    )
     response.set_cookie(
         key="access_token",
         value=f"Bearer {access_token}",
@@ -74,7 +90,7 @@ def login(
     "/refresh",
     response_model=schemas.Token,
     summary="Refresh access token",
-    description="Use refresh token to get a new access token and refresh token.",
+    description="Use refresh token.",
 )
 def refresh_token(
     response: Response,
@@ -92,7 +108,9 @@ def refresh_token(
     print(f"Received refresh token: {refresh_token}")
     try:
         payload = jwt.decode(
-            refresh_token, dependencies.SECRET_KEY, algorithms=[dependencies.ALGORITHM]
+            refresh_token,
+            dependencies.SECRET_KEY,
+            algorithms=[dependencies.ALGORITHM],
         )
         user_id: str = payload.get("sub")
         if user_id is None:
@@ -101,13 +119,17 @@ def refresh_token(
         print(f"Decoded user_id: {user_id}")
     except jwt.JWTError as e:
         print(f"JWT decode error: {e}")
-        raise credentials_exception
+        raise credentials_exception from e
     user = crud.users.get_user(db, user_id=int(user_id))
     if user is None:
         print("User not found")
         raise credentials_exception
-    access_token = dependencies.create_access_token(data={"sub": str(user.id)})
-    new_refresh_token = dependencies.create_refresh_token(data={"sub": str(user.id)})
+    access_token = dependencies.create_access_token(
+        data={"sub": str(user.id)}
+    )
+    new_refresh_token = dependencies.create_refresh_token(
+        data={"sub": str(user.id)}
+    )
     response.set_cookie(
         key="access_token",
         value=f"Bearer {access_token}",

@@ -25,7 +25,7 @@ This project implements a RESTful API for managing expenses, integrated with a s
 ## Setup
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/mahdighadiriii/FastApi/tree/auth-jwt
+   git clone https://github.com/mahdighadiriii/FastApi
    cd FastApi
    ```
 

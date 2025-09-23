@@ -1,1 +1,1 @@
-from .crud import expenses, users
+from .crud import expenses, users  # noqa: F401

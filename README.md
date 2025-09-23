@@ -33,7 +33,7 @@ This project implements a RESTful API for managing expenses, featuring secure JW
 ## Setup
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/FastApi.git
+   git clone https://github.com/mahdighadiriii/FastApi/tree/feature/reformat
    cd FastApi
    ```
 

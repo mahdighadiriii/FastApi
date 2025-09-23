@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from fastapi.security import HTTPBearer
 
 from .database import engine
 from .models import Base

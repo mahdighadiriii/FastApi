@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -12,7 +10,8 @@ router = APIRouter(prefix="/expenses", tags=["expenses"])
     "/",
     response_model=schemas.ExpenseOut,
     summary="Create a new expense",
-    description="Create a new expense with description and amount. Requires authentication.",
+    description="Create a new expense with description "
+    "and amount. Requires authentication.",
 )
 def create_expense(
     expense: schemas.ExpenseCreate,
@@ -25,9 +24,9 @@ def create_expense(
 
 @router.get(
     "/",
-    response_model=List[schemas.ExpenseOut],
+    response_model=list[schemas.ExpenseOut],
     summary="List expenses",
-    description="Get all expenses for the authenticated user. Requires authentication.",
+    description="Get all expenses for the authenticated user.",
 )
 def get_expenses(
     db: Session = Depends(database.get_db),
@@ -41,7 +40,7 @@ def get_expenses(
     "/{expense_id}",
     response_model=schemas.ExpenseOut,
     summary="Get an expense",
-    description="Get details of a specific expense by ID. Requires authentication.",
+    description="Get details of a specific expense by ID.",
 )
 def get_expense(
     expense_id: int,

@@ -2,13 +2,14 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from . import crud, models
 from .database import SessionLocal, get_db
+from .i18n import get_language, get_translator
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
@@ -60,3 +61,8 @@ def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+
+def get_i18n_translator(request: Request, lang: Optional[str] = Query(None)):
+    language = get_language(request, lang)
+    return get_translator(language)

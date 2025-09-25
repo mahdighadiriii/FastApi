@@ -1,9 +1,9 @@
 # Expenses API
 
-A robust FastAPI-based application for managing expenses with secure JWT authentication and multi-language support.
+A robust FastAPI-based application for managing expenses with secure JWT authentication, multi-language support, and Docker support.
 
 ## Overview
-This project implements a RESTful API for managing expenses, featuring secure JWT-based authentication and internationalization (i18n) for English (`en`) and Persian (`fa`). It uses SQLite as the database and supports user registration, login, token refresh, and expense management. The API is documented using Swagger UI, with enhanced security through HttpOnly cookies and strict SameSite policies. Code quality is maintained with linting (`ruff`) and reformatting (`black`, `isort`) tools, integrated with pre-commit hooks. Custom exception handling ensures structured error responses, and tests validate functionality.
+This project implements a RESTful API for managing expenses, featuring secure JWT-based authentication and internationalization (i18n) for English (`en`) and Persian (`fa`). It uses SQLite for development and PostgreSQL for production, with Redis for caching. The API is documented using Swagger UI, with enhanced security through HttpOnly cookies and strict SameSite policies. Code quality is maintained with linting (`ruff`) and reformatting (`black`, `isort`) tools, integrated with pre-commit hooks. Custom exception handling ensures structured error responses, and tests validate functionality.
 
 ## Features
 - **Authentication**:
@@ -13,7 +13,8 @@ This project implements a RESTful API for managing expenses, featuring secure JW
   - Logout clears cookies.
 - **Expense Management**:
   - Create, list, retrieve, update, and delete expenses.
-  - All endpoints require JWT-based authentication.
+  - All endpoints require JWT-based authentication and are restricted to the authenticated user's data.
+  - Expense listing (`GET /expenses/`) is cached in Redis for 5 minutes.
 - **Multi-Language Support (i18n)**:
   - Supports English (`en`) and Persian (`fa`) via `gettext` with PO/MO files.
   - Language detection using `Accept-Language` header or `lang` query parameter.
@@ -28,11 +29,20 @@ This project implements a RESTful API for managing expenses, featuring secure JW
 - **Testing**:
   - Tests written with `pytest` and `TestClient` to validate endpoints and error handling.
   - Covers successful operations and error cases (e.g., 404 for nonexistent expenses).
+- **Docker Support**:
+  - Containerized with Docker and `docker-compose` for easy deployment.
+  - Supports SQLite (development) and PostgreSQL (production).
+  - Redis with password authentication for caching.
+- **Caching**:
+  - Uses Redis for caching `GET /expenses/` results with a 5-minute TTL.
+  - Cache is invalidated on create, update, or delete operations.
+  - Managed via `app/cache.py` module.
 
 ## Setup
+### Without Docker (Development)
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/mahdighadiriii/FastApi
+   git clone https://github.com/mahdighadiriii/FastApi/tree/base/dockerize
    cd FastApi
    ```
 
@@ -45,13 +55,14 @@ This project implements a RESTful API for managing expenses, featuring secure JW
 3. **Install Dependencies**:
    ```bash
    pip install -r requirements.txt
-   pip install pre-commit==4.3.0
+   pip install pre-commit==3.8.0
    ```
 
 4. **Set Up Environment**:
    Create a `.env` file based on `.env.example` in the project root:
    ```text
    SQLALCHEMY_DATABASE_URL=sqlite:///./app/test.db
+   REDIS_URL=redis://default:admin@redis:6379/0
    SECRET_KEY=your-generated-secret-key  # Generate with `openssl rand -hex 32`
    ```
 
@@ -78,6 +89,50 @@ This project implements a RESTful API for managing expenses, featuring secure JW
 
 9. **Access Swagger UI**:
    Open `http://localhost:8000/docs` in your browser.
+
+### With Docker (Development/Production)
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/your-username/FastApi.git
+   cd FastApi
+   ```
+
+2. **Set Up Environment**:
+   Create a `.env` file in the project root:
+   ```text
+   SQLALCHEMY_DATABASE_URL=postgresql://admin:your-secure-password@postgres:5432/expenses
+   REDIS_URL=redis://default:admin@redis:6379/0
+   SECRET_KEY=your-generated-secret-key  # Generate with `openssl rand -hex 32`
+   ```
+
+3. **Create Docker Network** (if using external network):
+   ```bash
+   docker network create expenses
+   ```
+
+4. **Build and Run with Docker Compose**:
+   ```bash
+   docker-compose up -d --build
+   ```
+
+5. **Run Database Migrations**:
+   ```bash
+   docker-compose exec web alembic upgrade head
+   ```
+
+6. **Access Swagger UI**:
+   Open `http://localhost:8000/docs` in your browser.
+
+7. **Run Tests**:
+   ```bash
+   docker-compose exec web pip install pytest==8.4.2 pytest-asyncio==1.2.0
+   docker-compose exec web pytest tests/test_expenses.py -v
+   ```
+
+8. **Stop the Containers**:
+   ```bash
+   docker-compose down
+   ```
 
 ## Code Quality
 To ensure consistent code style and quality:
@@ -108,6 +163,7 @@ To ensure consistent code style and quality:
   - Replaced `datetime.utcnow` with `datetime.now(UTC)` in models.
   - Fixed `datetime.datetime` to `sqlalchemy.DateTime` in `models.py` for Alembic compatibility.
   - Fixed `SQLALCHEMY_DATABASE_URL` None error by explicitly loading `.env` file with `python-dotenv`.
+  - Fixed `TypeError: get_expenses() got an unexpected keyword argument 'user_id'` by adding `user_id` parameter to `get_expenses` and other CRUD functions in `app/crud/expenses.py`.
 - **Remaining Issues**:
   - `F401` in `app/__init__.py`: Kept with `# noqa: F401` for potential future use.
   - `B904` in some exception handlers: Safe in FastAPI context.
@@ -127,18 +183,14 @@ pytest tests/test_expenses.py -v
 ### Test Cases
 - **Nonexistent Expense (GET)**: Ensures 404 with `{"status": "error", "message": "هزینه یافت نشد"}` for invalid ID.
 - **Nonexistent Expense (DELETE)**: Ensures 404 with proper error message.
-- **Successful Create**: Verifies POST `/expenses/` creates an expense.
-- **Successful List**: Verifies GET `/expenses/` returns a list of expenses.
+- **Successful Create**: Verifies POST `/expenses/` creates an expense for the authenticated user.
+- **Successful List**: Verifies GET `/expenses/` returns a list of expenses for the authenticated user.
 
-### Running Tests
-1. Install test dependencies:
-   ```bash
-   pip install pytest pytest-asyncio
-   ```
-2. Run tests:
-   ```bash
-   pytest tests/test_expenses.py -v
-   ```
+### Running Tests in Docker
+```bash
+docker-compose exec web pip install pytest==8.4.2 pytest-asyncio==1.2.0
+docker-compose exec web pytest tests/test_expenses.py -v
+```
 
 ### Test Warnings
 - **Resolved**:
@@ -146,6 +198,7 @@ pytest tests/test_expenses.py -v
   - Pydantic `class Config` warning fixed by using `ConfigDict`.
   - `datetime.utcnow` warning fixed by using `datetime.now(UTC)`.
   - `datetime.datetime` in `models.py` fixed by using `sqlalchemy.DateTime`.
+  - `TypeError: get_expenses() got an unexpected keyword argument 'user_id'` fixed by updating `app/crud/expenses.py`.
 - **Remaining**:
   - `passlib` `crypt` deprecation warning filtered in `.pytest.ini` but may still appear due to incomplete filtering.
 
@@ -166,11 +219,16 @@ pytest tests/test_expenses.py -v
 - **POST /expenses/**: Create a new expense for the authenticated user.
   - Example: `{"description": "Coffee", "amount": 5.0}`
   - Response: Created expense details (including `id`, `created_at` in ISO 8601 format).
-- **GET /expenses/**: List all expenses for the authenticated user.
+- **GET /expenses/**: List all expenses for the authenticated user (cached in Redis for 5 minutes).
 - **GET /expenses/{expense_id}**: Get details of a specific expense by ID for the authenticated user.
 - **PUT /expenses/{expense_id}**: Update an existing expense by ID for the authenticated user.
   - Example: `{"description": "Updated Coffee", "amount": 6.0}`
 - **DELETE /expenses/{expense_id}**: Delete an expense by ID for the authenticated user.
+
+## Caching
+- The `GET /expenses/` endpoint caches results in Redis for 5 minutes to improve performance.
+- Cache is invalidated on create, update, or delete operations to ensure data consistency.
+- Managed via `app/cache.py` module.
 
 ## Multi-Language Support
 The API supports English (`en`) and Persian (`fa`) using `gettext` with PO/MO files. Language is determined by:
@@ -233,6 +291,12 @@ To add a new language (e.g., Arabic `ar`):
   - Invalid/expired tokens return HTTP 401 Unauthorized.
   - Duplicate usernames return HTTP 400 Bad Request.
   - Non-existent expenses return HTTP 404 Not Found with structured JSON.
+- **Docker Security**:
+  - Use environment variables for sensitive data like `SECRET_KEY`, `POSTGRES_PASSWORD`, `REDIS_URL`.
+  - Redis configured with password authentication.
+  - PostgreSQL credentials stored in `postgres/secrets/.env`.
+- **Data Access Control**:
+  - Expense operations are restricted to the authenticated user's data using `user_id` filtering in CRUD functions.
 
 ## Why Cookies Instead of Authorization Header?
 - **XSS Protection**: `HttpOnly` cookies prevent JavaScript access, unlike `localStorage` or `sessionStorage`.
@@ -250,6 +314,7 @@ FastApi/
 │   ├── versions/
 │   │   ├── 4ad1357f7b7b_init_tables.py
 │   │   ├── 0ed6480f3fe7_add_user_model_with_jwt.py
+│   │   ├── d9977c3e31d6_update.py
 │   │   └── __pycache__/
 ├── alembic.ini
 ├── app/
@@ -271,6 +336,7 @@ FastApi/
 │   │   │       ├── messages.po
 │   │   │       └── messages.mo
 │   ├── __init__.py
+│   ├── cache.py
 │   ├── database.py
 │   ├── dependencies.py
 │   ├── exceptions.py
@@ -282,8 +348,16 @@ FastApi/
 │   └── __pycache__/
 ├── docs/
 │   └── DB.drawio.png
-├── tests/
-│   └── test_expenses.py
+├── initialize/
+│   ├── expenses_initialize.sh
+│   └── redis_start.sh
+├── postgres/
+│   ├── docker-compose.yml
+│   └── secrets/
+│       └── .env
+├── Dockerfile
+├── docker-compose.yml
+├── LICENSE
 ├── .env
 ├── .env.example
 ├── .pre-commit-config.yaml
@@ -297,7 +371,7 @@ FastApi/
 ## Implementation Challenges
 - **Language Detection**: Handled multiple `Accept-Language` formats (e.g., `fa-IR`, `en-US`) by extracting primary language codes.
 - **Unicode Support**: Ensured UTF-8 encoding for Persian text in JSON responses and PO files.
-- **Dependency Injection**: Integrated `get_i18n_translator` and `ExpenseNotFoundError` across endpoints.
+- **Dependency Injection**: Integrated `get_i18n_translator`, `ExpenseNotFoundError`, and `CacheManager` across endpoints.
 - **Linting and Reformatting**:
   - Fixed `ruff` issues (e.g., unused imports, deprecated type annotations).
   - Configured `pyproject.toml` for `[tool.ruff.lint]`.
@@ -307,11 +381,24 @@ FastApi/
 - **Alembic Issues**:
   - Fixed `SQLALCHEMY_DATABASE_URL` None error by explicitly loading `.env` file with `python-dotenv`.
   - Fixed `datetime.datetime` to `sqlalchemy.DateTime` in `models.py` for Alembic compatibility.
+- **Docker Integration**:
+  - Added `Dockerfile` and `docker-compose.yml` for containerization.
+  - Configured Redis with password authentication.
+  - Added support for SQLite (development) and PostgreSQL (production).
+  - Integrated `expenses_initialize.sh` and `redis_start.sh` for initialization.
+- **Caching**:
+  - Implemented `CacheManager` in `app/cache.py` for modular cache management.
+  - Cached `GET /expenses/` results with 5-minute TTL.
+  - Invalidated cache on create, update, or delete operations.
+- **Bug Fixes**:
+  - Fixed `TypeError: get_expenses() got an unexpected keyword argument 'user_id'` by adding `user_id` parameter to `get_expenses` and other CRUD functions in `app/crud/expenses.py`.
+  - Ensured `user_id` filtering in all CRUD operations for security.
 
 ## Notes
 - Uses `datetime.now(UTC)` for timezone-aware datetime handling (Python 3.12+ compatible).
 - Database schema managed with Alembic (`users` and `expenses` tables).
 - For production, set `secure=True` in cookie settings for HTTPS.
 - Some `B904` errors remain due to FastAPI's dependency injection but are safe.
-- Ensure `.env` file exists with `SQLALCHEMY_DATABASE_URL` and is loaded correctly to avoid Alembic errors.
+- Ensure `.env` file exists with `SECRET_KEY`, `POSTGRES_PASSWORD`, and `REDIS_URL` for security.
 - The `created_at` field in responses is returned in ISO 8601 format (e.g., `"2025-09-25T01:12:00Z"`).
+- Run `docker-compose exec web alembic upgrade head` after starting containers to apply migrations.

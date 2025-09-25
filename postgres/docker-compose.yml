@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:16.3-alpine3.18
+    container_name: expenses_postgres
+    hostname: expenses_postgres
+    restart: unless-stopped
+    env_file: secrets/.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - expenses_postgres_data:/var/lib/postgresql/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+    networks:
+      default:
+        ipv4_address: 192.168.200.2
+
+volumes:
+  expenses_postgres_data:
+    name: expenses_postgres_data
+
+networks:
+  default:
+    name: expenses
+    external: true

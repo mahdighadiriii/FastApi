@@ -1,6 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 
 from .database import engine
+from .exceptions import ExpenseNotFoundError
 from .models import Base
 from .routers import auth, expenses
 
@@ -9,8 +11,14 @@ app = FastAPI(
     description="A simple API for managing expenses with JWT authentication.",
     version="1.0.0",
     openapi_tags=[
-        {"name": "auth", "description": "Authentication operations"},
-        {"name": "expenses", "description": "Expense management operations"},
+        {
+            "name": "auth",
+            "description": "Operations related to authentication",
+        },
+        {
+            "name": "expenses",
+            "description": "Operations related to expense management",
+        },
     ],
     openapi_extra={
         "security": [{"bearerAuth": []}],
@@ -25,6 +33,17 @@ app = FastAPI(
         },
     },
 )
+
+
+@app.exception_handler(ExpenseNotFoundError)
+async def expense_not_found_handler(
+    request: Request, exc: ExpenseNotFoundError
+):
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"status": "error", "message": exc.detail},
+    )
+
 
 Base.metadata.create_all(bind=engine)
 

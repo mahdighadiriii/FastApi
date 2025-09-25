@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import Column, DateTime, Float, Integer, String
 
@@ -19,4 +19,4 @@ class Expense(Base):
     id = Column(Integer, primary_key=True, index=True)
     description = Column(String, index=True)
     amount = Column(Float)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))

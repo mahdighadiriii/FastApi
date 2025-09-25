@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from .. import crud, database, dependencies, schemas
+from ..exceptions import ExpenseNotFoundError
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
 
@@ -10,8 +11,7 @@ router = APIRouter(prefix="/expenses", tags=["expenses"])
     "/",
     response_model=schemas.ExpenseOut,
     summary="Create a new expense",
-    description="Create a new expense with description "
-    "and amount. Requires authentication.",
+    description="Create a new expense with description and amount.",
 )
 def create_expense(
     expense: schemas.ExpenseCreate,
@@ -50,7 +50,7 @@ def get_expense(
 ):
     db_expense = crud.expenses.get_expense(db=db, expense_id=expense_id)
     if not db_expense:
-        raise HTTPException(status_code=404, detail=_("expense_not_found"))
+        raise ExpenseNotFoundError(expense_id=expense_id, translator=_)
     return db_expense
 
 
@@ -58,7 +58,7 @@ def get_expense(
     "/{expense_id}",
     response_model=schemas.ExpenseOut,
     summary="Update an expense",
-    description="Update an existing expense by ID. Requires authentication.",
+    description="Update an existing expense by ID.",
 )
 def update_expense(
     expense_id: int,
@@ -71,7 +71,7 @@ def update_expense(
         db=db, expense_id=expense_id, expense=expense
     )
     if not updated:
-        raise HTTPException(status_code=404, detail=_("expense_not_found"))
+        raise ExpenseNotFoundError(expense_id=expense_id, translator=_)
     return updated
 
 
@@ -79,7 +79,7 @@ def update_expense(
     "/{expense_id}",
     status_code=204,
     summary="Delete an expense",
-    description="Delete an expense by ID. Requires authentication.",
+    description="Delete an expense by ID.",
 )
 def delete_expense(
     expense_id: int,
@@ -89,5 +89,5 @@ def delete_expense(
 ):
     db_expense = crud.expenses.get_expense(db=db, expense_id=expense_id)
     if not db_expense:
-        raise HTTPException(status_code=404, detail=_("expense_not_found"))
+        raise ExpenseNotFoundError(expense_id=expense_id, translator=_)
     crud.expenses.delete_expense(db=db, expense_id=expense_id)

@@ -1,0 +1,43 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: expenses_app
+    image: fastapi-expenses:0.0.1 
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command: bash initialize/expenses_initialize.sh
+    env_file:
+      - ./.env
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      default:
+        ipv4_address: 192.168.200.3
+
+  redis:
+    image: redis:7-alpine
+    container_name: expenses_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./initialize/redis_start.sh:/usr/local/bin/redis_start.sh
+    command: sh /usr/local/bin/redis_start.sh
+    restart: unless-stopped
+    networks:
+      default:
+        ipv4_address: 192.168.200.4
+
+
+volumes:
+  redis_data:
+
+networks:
+  default:
+    name: expenses
+    external: true

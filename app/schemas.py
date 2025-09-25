@@ -1,6 +1,19 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+
+
+class UserBase(BaseModel):
+    username: str
+
+
+class UserCreate(UserBase):
+    password: str
+
+
+class UserOut(UserBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ExpenseBase(BaseModel):
@@ -12,33 +25,15 @@ class ExpenseCreate(ExpenseBase):
     pass
 
 
-class ExpenseOut(ExpenseBase):
-    id: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
 class ExpenseUpdate(BaseModel):
     description: str | None = None
     amount: float | None = None
 
 
-class UserBase(BaseModel):
-    username: str
-
-
-class UserCreate(BaseModel):
-    username: str
-    password: str
-
-
-class UserOut(BaseModel):
+class ExpenseOut(ExpenseBase):
     id: int
-
-    class Config:
-        from_attributes = True
+    created_at: datetime  # Changed from str to datetime
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Token(BaseModel):

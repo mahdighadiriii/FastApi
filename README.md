@@ -3,7 +3,7 @@
 A robust FastAPI-based application for managing expenses with secure JWT authentication and multi-language support.
 
 ## Overview
-This project implements a RESTful API for managing expenses, featuring secure JWT-based authentication and internationalization (i18n) for English (`en`) and Persian (`fa`). It uses SQLite as the database and supports user registration, login, token refresh, and expense management. The API is documented using Swagger UI, with enhanced security through HttpOnly cookies and strict SameSite policies. Code quality is maintained with linting (`ruff`) and reformatting (`black`, `isort`) tools, integrated with pre-commit hooks.
+This project implements a RESTful API for managing expenses, featuring secure JWT-based authentication and internationalization (i18n) for English (`en`) and Persian (`fa`). It uses SQLite as the database and supports user registration, login, token refresh, and expense management. The API is documented using Swagger UI, with enhanced security through HttpOnly cookies and strict SameSite policies. Code quality is maintained with linting (`ruff`) and reformatting (`black`, `isort`) tools, integrated with pre-commit hooks. Custom exception handling ensures structured error responses, and tests validate functionality.
 
 ## Features
 - **Authentication**:
@@ -17,23 +17,22 @@ This project implements a RESTful API for managing expenses, featuring secure JW
 - **Multi-Language Support (i18n)**:
   - Supports English (`en`) and Persian (`fa`) via `gettext` with PO/MO files.
   - Language detection using `Accept-Language` header or `lang` query parameter.
-  - Error messages and responses are translated based on the user's language.
+  - Error messages and responses are translated.
 - **Code Quality**:
-  - Linting with `ruff` to enforce PEP 8 and other code quality standards.
+  - Linting with `ruff` to enforce PEP 8 and other standards.
   - Reformatting with `black` and `isort` for consistent code style.
-  - Pre-commit hooks automate linting and reformatting before commits.
-- **Security**:
-  - Passwords hashed with `bcrypt` using `passlib`.
-  - JWT tokens signed with a secure secret key.
-  - Cookies protected against XSS (`HttpOnly=True`) and CSRF (`SameSite=strict`).
-- **Swagger UI**:
-  - Simplified to accept only `username` and `password` for login.
-  - Authorization restricted to JWT Bearer tokens.
+  - Pre-commit hooks automate linting and reformatting.
+- **Error Handling**:
+  - Custom `ExpenseNotFoundError` for "expense not found" errors, returning structured JSON responses (e.g., `{"status": "error", "message": "هزینه یافت نشد"}`).
+  - Exception handler in FastAPI ensures consistent error responses.
+- **Testing**:
+  - Tests written with `pytest` and `TestClient` to validate endpoints and error handling.
+  - Covers successful operations and error cases (e.g., 404 for nonexistent expenses).
 
 ## Setup
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/mahdighadiriii/FastApi/tree/feature/reformat
+   git clone https://github.com/your-username/FastApi.git
    cd FastApi
    ```
 
@@ -46,11 +45,11 @@ This project implements a RESTful API for managing expenses, featuring secure JW
 3. **Install Dependencies**:
    ```bash
    pip install -r requirements.txt
-   pip install pre-commit==3.8.0
+   pip install pre-commit==4.3.0
    ```
 
 4. **Set Up Environment**:
-   Create a `.env` file based on `.env.example`:
+   Create a `.env` file based on `.env.example` in the project root:
    ```text
    SQLALCHEMY_DATABASE_URL=sqlite:///./app/test.db
    SECRET_KEY=your-generated-secret-key  # Generate with `openssl rand -hex 32`
@@ -100,13 +99,55 @@ To ensure consistent code style and quality:
 ### Linting Details
 - **Fixed Issues**:
   - Removed unused imports (`F401`) in `alembic/env.py`, `app/dependencies.py`, `app/main.py`, and `app/routers/auth.py`.
-  - Updated type annotations (`UP007`, `UP045`, `UP035`) to use `X | Y` and `collections.abc.Sequence` instead of `typing.Union` and `typing.Sequence`.
+  - Updated type annotations (`UP007`, `UP045`, `UP035`) to use `X | Y` and `collections.abc.Sequence`.
   - Replaced `datetime.now(timezone.utc)` with `datetime.now(UTC)` (`UP017`).
-  - Updated exception handling to include `raise ... from e` (`B904`) in `app/dependencies.py` and `app/routers/auth.py`.
-  - Replaced `typing.List` with `list` (`UP006`) in `app/routers/expenses.py`.
+  - Updated exception handling to include `raise ... from e` (`B904`).
+  - Replaced `typing.List` with `list` (`UP006`).
+  - Updated `declarative_base` to `sqlalchemy.orm.declarative_base` to resolve SQLAlchemy 2.0 warning.
+  - Replaced Pydantic `class Config` with `ConfigDict` to resolve deprecation warning.
+  - Replaced `datetime.utcnow` with `datetime.now(UTC)` in models.
+  - Fixed `datetime.datetime` to `sqlalchemy.DateTime` in `models.py` for Alembic compatibility.
+  - Fixed `SQLALCHEMY_DATABASE_URL` None error by explicitly loading `.env` file with `python-dotenv`.
 - **Remaining Issues**:
-  - `F401` in `app/__init__.py`: Kept imports with `# noqa: F401` for explicit re-export, as they may be used in future extensions.
-  - `B904` in some exception handlers: Safe in FastAPI context due to dependency injection patterns.
+  - `F401` in `app/__init__.py`: Kept with `# noqa: F401` for potential future use.
+  - `B904` in some exception handlers: Safe in FastAPI context.
+  - `passlib` `crypt` deprecation warning filtered in `.pytest.ini` as a library issue.
+
+## Error Handling
+- **Custom Exception**: `ExpenseNotFoundError` handles "expense not found" errors with translated messages.
+- **Response Format**: Errors return JSON with `{"status": "error", "message": "..."}` (e.g., `{"status": "error", "message": "هزینه یافت نشد"}` for `lang=fa`).
+- **Handler**: FastAPI exception handler ensures consistent 404 responses for nonexistent expenses.
+
+## Testing
+Run tests with:
+```bash
+pytest tests/test_expenses.py -v
+```
+
+### Test Cases
+- **Nonexistent Expense (GET)**: Ensures 404 with `{"status": "error", "message": "هزینه یافت نشد"}` for invalid ID.
+- **Nonexistent Expense (DELETE)**: Ensures 404 with proper error message.
+- **Successful Create**: Verifies POST `/expenses/` creates an expense.
+- **Successful List**: Verifies GET `/expenses/` returns a list of expenses.
+
+### Running Tests
+1. Install test dependencies:
+   ```bash
+   pip install pytest pytest-asyncio
+   ```
+2. Run tests:
+   ```bash
+   pytest tests/test_expenses.py -v
+   ```
+
+### Test Warnings
+- **Resolved**:
+  - SQLAlchemy `declarative_base` warning fixed by using `sqlalchemy.orm.declarative_base`.
+  - Pydantic `class Config` warning fixed by using `ConfigDict`.
+  - `datetime.utcnow` warning fixed by using `datetime.now(UTC)`.
+  - `datetime.datetime` in `models.py` fixed by using `sqlalchemy.DateTime`.
+- **Remaining**:
+  - `passlib` `crypt` deprecation warning filtered in `.pytest.ini` but may still appear due to incomplete filtering.
 
 ## Endpoints
 ### Auth
@@ -122,13 +163,14 @@ To ensure consistent code style and quality:
   - Response: `{"message": "logged_out_successfully"}`
 
 ### Expenses
-- **POST /expenses/**: Create a new expense (requires authentication).
+- **POST /expenses/**: Create a new expense for the authenticated user.
   - Example: `{"description": "Coffee", "amount": 5.0}`
+  - Response: Created expense details (including `id`, `created_at` in ISO 8601 format).
 - **GET /expenses/**: List all expenses for the authenticated user.
-- **GET /expenses/{expense_id}**: Get details of a specific expense by ID.
-- **PUT /expenses/{expense_id}**: Update an existing expense.
+- **GET /expenses/{expense_id}**: Get details of a specific expense by ID for the authenticated user.
+- **PUT /expenses/{expense_id}**: Update an existing expense by ID for the authenticated user.
   - Example: `{"description": "Updated Coffee", "amount": 6.0}`
-- **DELETE /expenses/{expense_id}**: Delete an expense by ID.
+- **DELETE /expenses/{expense_id}**: Delete an expense by ID for the authenticated user.
 
 ## Multi-Language Support
 The API supports English (`en`) and Persian (`fa`) using `gettext` with PO/MO files. Language is determined by:
@@ -178,7 +220,7 @@ To add a new language (e.g., Arabic `ar`):
 
 ## Security Considerations
 - **JWT Security**:
-  - Tokens are signed with a secure `SECRET_KEY` to prevent tampering.
+  - Tokens are signed with a secure `SECRET_KEY`.
   - Access Token (15 minutes) minimizes damage if compromised.
   - Refresh Token (7 days) is stored securely in HttpOnly cookies.
 - **Cookie Security**:
@@ -190,50 +232,13 @@ To add a new language (e.g., Arabic `ar`):
 - **Error Handling**:
   - Invalid/expired tokens return HTTP 401 Unauthorized.
   - Duplicate usernames return HTTP 400 Bad Request.
-  - Non-existent expenses return HTTP 404 Not Found.
+  - Non-existent expenses return HTTP 404 Not Found with structured JSON.
 
 ## Why Cookies Instead of Authorization Header?
 - **XSS Protection**: `HttpOnly` cookies prevent JavaScript access, unlike `localStorage` or `sessionStorage`.
 - **CSRF Protection**: `SameSite=strict` mitigates CSRF attacks.
 - **Ease of Use**: Cookies are automatically sent by the browser, simplifying client-side logic.
 - **Secure Transmission**: `secure=True` (in production) ensures HTTPS-only transmission.
-
-## Testing
-Run the following commands to test the API:
-1. **Register a User**:
-   ```bash
-   curl -X POST "http://localhost:8000/auth/register?lang=fa" \
-   -H "Content-Type: application/json" \
-   -d '{"username":"testuser","password":"testpass"}'
-   ```
-
-2. **Login**:
-   ```bash
-   curl -X POST "http://localhost:8000/auth/login?lang=fa" \
-   -H "Content-Type: application/json" \
-   -d '{"username":"testuser","password":"wrongpass"}'
-   ```
-   Expected error: `{"detail":"نام کاربری یا رمز عبور نادرست است"}`
-
-3. **Refresh Tokens**:
-   ```bash
-   curl -X POST "http://localhost:8000/auth/refresh?lang=fa" \
-   -b cookies.txt -c cookies.txt
-   ```
-
-4. **Get Expenses**:
-   ```bash
-   curl -X GET "http://localhost:8000/expenses?lang=fa" -b cookies.txt
-   ```
-
-5. **Test with Accept-Language Header**:
-   ```bash
-   curl -X GET "http://localhost:8000/expenses" \
-   -H "Accept-Language: fa" -b cookies.txt
-   ```
-
-6. **Check Swagger UI**:
-   Visit `http://localhost:8000/docs` to interact with the API. Test language switching with `lang` query or `Accept-Language` header.
 
 ## Project Structure
 ```
@@ -268,6 +273,7 @@ FastApi/
 │   ├── __init__.py
 │   ├── database.py
 │   ├── dependencies.py
+│   ├── exceptions.py
 │   ├── i18n.py
 │   ├── main.py
 │   ├── models.py
@@ -276,8 +282,12 @@ FastApi/
 │   └── __pycache__/
 ├── docs/
 │   └── DB.drawio.png
+├── tests/
+│   └── test_expenses.py
+├── .env
 ├── .env.example
 ├── .pre-commit-config.yaml
+├── .pytest.ini
 ├── pyproject.toml
 ├── requirements.txt
 ├── README.md
@@ -287,15 +297,21 @@ FastApi/
 ## Implementation Challenges
 - **Language Detection**: Handled multiple `Accept-Language` formats (e.g., `fa-IR`, `en-US`) by extracting primary language codes.
 - **Unicode Support**: Ensured UTF-8 encoding for Persian text in JSON responses and PO files.
-- **Dependency Injection**: Integrated `get_i18n_translator` across endpoints without breaking functionality.
+- **Dependency Injection**: Integrated `get_i18n_translator` and `ExpenseNotFoundError` across endpoints.
 - **Linting and Reformatting**:
   - Fixed `ruff` issues (e.g., unused imports, deprecated type annotations).
-  - Configured `pyproject.toml` to move `select`/`ignore` to `[tool.ruff.lint]`.
-  - Kept `app/__init__.py` imports with `# noqa: F401` for potential future use.
-- **Pre-Commit Setup**: Resolved `pip` issues by specifying `pre-commit==3.8.0`.
+  - Configured `pyproject.toml` for `[tool.ruff.lint]`.
+  - Kept `app/__init__.py` imports with `# noqa: F401`.
+- **Testing**: Ensured tests cover both error cases (404) and successful operations, with proper JWT authentication.
+- **Deprecation Warnings**: Resolved SQLAlchemy and Pydantic warnings; filtered `passlib` warning as a temporary workaround.
+- **Alembic Issues**:
+  - Fixed `SQLALCHEMY_DATABASE_URL` None error by explicitly loading `.env` file with `python-dotenv`.
+  - Fixed `datetime.datetime` to `sqlalchemy.DateTime` in `models.py` for Alembic compatibility.
 
 ## Notes
 - Uses `datetime.now(UTC)` for timezone-aware datetime handling (Python 3.12+ compatible).
 - Database schema managed with Alembic (`users` and `expenses` tables).
 - For production, set `secure=True` in cookie settings for HTTPS.
 - Some `B904` errors remain due to FastAPI's dependency injection but are safe.
+- Ensure `.env` file exists with `SQLALCHEMY_DATABASE_URL` and is loaded correctly to avoid Alembic errors.
+- The `created_at` field in responses is returned in ISO 8601 format (e.g., `"2025-09-25T01:12:00Z"`).

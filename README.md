@@ -42,7 +42,7 @@ This project implements a RESTful API for managing expenses, featuring secure JW
 ### Without Docker (Development)
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/mahdighadiriii/FastApi/tree/base/dockerize
+   git clone https://github.com/mahdighadiriii/FastApi/
    cd FastApi
    ```
 

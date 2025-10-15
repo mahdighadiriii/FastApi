@@ -5,6 +5,8 @@ A robust FastAPI-based application for managing expenses with secure JWT authent
 ## Overview
 This project implements a RESTful API for managing expenses, featuring secure JWT-based authentication and internationalization (i18n) for English (`en`) and Persian (`fa`). It uses SQLite for development and PostgreSQL for production, with Redis for caching. The API is documented using Swagger UI, with enhanced security through HttpOnly cookies and strict SameSite policies. Code quality is maintained with linting (`ruff`) and reformatting (`black`, `isort`) tools, integrated with pre-commit hooks. Custom exception handling ensures structured error responses, and tests validate functionality.
 
+![Image Alt Text](https://raw.githubusercontent.com/mahdighadiriii/FastApi/main/docs/fastapi-course.jpg)
+
 ## Features
 - **Authentication**:
   - Register and login with username and password.
